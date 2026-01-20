@@ -38,13 +38,16 @@ col_form, _ = st.columns([1, 2])
 with col_form:
     email_user = st.text_input(
         "E-mail remetente",
-        placeholder="atendimento@evelog.com.br"
+        placeholder="atendimento@evelog.com.br",
+        key="email_user"
     )
 
     senha = st.text_input(
         "Senha",
-        type="password"
+        type="password",
+        key="email_smtp"
     )
+
 
     uploaded = st.file_uploader(
         "Importar planilha",
@@ -56,6 +59,32 @@ with col_form:
 # --------------------------------------------------
 if uploaded:
 
+    # ---------------------------------
+    # DETECÇÃO DE PLANILHA DE COLETA
+    # (A2 == "ORDEM")
+    # ---------------------------------
+    if uploaded.name.endswith(".csv"):
+        df_head = pd.read_csv(uploaded, header=1, usecols=[0], nrows=1)
+    else:
+        df_head = pd.read_excel(uploaded, header=1, usecols=[0], nrows=1)
+
+    primeira_coluna = str(df_head.columns[0]).strip().upper()
+
+    if primeira_coluna == "ORDEM":
+
+        # leitura completa da planilha
+        if uploaded.name.endswith(".csv"):
+            df = pd.read_csv(uploaded, header=1)
+        else:
+            df = pd.read_excel(uploaded, header=1)
+
+        import coleta
+        coleta.run(df)
+        st.stop()
+
+    # ---------------------------------
+    # FLUXO NORMAL (APP ATUAL)
+    # ---------------------------------
     if uploaded.name.endswith(".csv"):
         df = pd.read_csv(uploaded, header=1)
     else:
@@ -235,6 +264,7 @@ if uploaded:
                         corpo_html = f"""
                         <p>{texto_html}</p>
                         {tabela_html}
+                        <p><strong><u>SE NÃO ESTIVER NA SUA UNIDADE, FAVOR DESCONSIDERAR.</u></strong></p>
                         <p><i>Mensagem automática.</i></p>
                         """
 
