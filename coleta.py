@@ -100,7 +100,7 @@ def run(df):
 
     cc_input = st.text_input(
         "CC (separados por vírgula)",
-        placeholder="email1@evelog.com.br, email2@evelog.com.br",
+        placeholder="atendimento1@evelog.com.br, atendimento2@evelog.com.br",
         key="coleta_cc"
     )
 
