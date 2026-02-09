@@ -50,45 +50,85 @@ with col_form:
 
 
     uploaded = st.file_uploader(
-        "Importar planilha",
-        type=["xlsx", "xls", "csv"]
-    )
+    "Importar planilha",
+    type=["xlsx", "xls", "csv"],
+    accept_multiple_files=True
+)
 
+
+# --------------------------------------------------
+# PROCESSAMENTO DA PLANILHA
+# --------------------------------------------------
 # --------------------------------------------------
 # PROCESSAMENTO DA PLANILHA
 # --------------------------------------------------
 if uploaded:
 
-    # ---------------------------------
+    # ==================================================
     # DETECÇÃO DE PLANILHA DE COLETA
-    # (A2 == "ORDEM")
-    # ---------------------------------
-    if uploaded.name.endswith(".csv"):
-        df_head = pd.read_csv(uploaded, header=1, usecols=[0], nrows=1)
+    # (A2 == "ORDEM") → usa SOMENTE o primeiro arquivo
+    # ==================================================
+    first_file = uploaded[0]
+
+    if first_file.name.endswith(".csv"):
+        df_head = pd.read_csv(first_file, header=1, usecols=[0], nrows=1)
     else:
-        df_head = pd.read_excel(uploaded, header=1, usecols=[0], nrows=1)
+        df_head = pd.read_excel(first_file, header=1, usecols=[0], nrows=1)
 
     primeira_coluna = str(df_head.columns[0]).strip().upper()
 
     if primeira_coluna == "ORDEM":
 
-        # leitura completa da planilha
-        if uploaded.name.endswith(".csv"):
-            df = pd.read_csv(uploaded, header=1)
+        # leitura completa do primeiro arquivo
+        if first_file.name.endswith(".csv"):
+            df = pd.read_csv(first_file, header=1)
         else:
-            df = pd.read_excel(uploaded, header=1)
+            df = pd.read_excel(first_file, header=1)
 
         import coleta
         coleta.run(df)
         st.stop()
 
-    # ---------------------------------
+    # ==================================================
     # FLUXO NORMAL (APP ATUAL)
-    # ---------------------------------
-    if uploaded.name.endswith(".csv"):
-        df = pd.read_csv(uploaded, header=1)
-    else:
-        df = pd.read_excel(uploaded, header=1)
+    # → unifica todas as planilhas
+    # ==================================================
+    dfs = []
+
+    for i, file in enumerate(uploaded):
+
+        if i == 0:
+            # Primeiro arquivo DEFINE o cabeçalho (linha 2)
+            if file.name.endswith(".csv"):
+                df = pd.read_csv(file, header=1)
+            else:
+                df = pd.read_excel(file, header=1)
+
+            colunas = df.columns  # guarda o layout correto
+
+        else:
+            # Demais arquivos:
+            # pula 2 linhas e USA o mesmo cabeçalho do primeiro
+            if file.name.endswith(".csv"):
+                df = pd.read_csv(
+                    file,
+                    skiprows=2,
+                    header=None,
+                    names=colunas
+                )
+            else:
+                df = pd.read_excel(
+                    file,
+                    skiprows=2,
+                    header=None,
+                    names=colunas
+                )
+
+        dfs.append(df)
+
+    df = pd.concat(dfs, ignore_index=True)
+
+    st.dataframe(df)
 
     # -----------------------------
     # COLUNAS FIXAS
