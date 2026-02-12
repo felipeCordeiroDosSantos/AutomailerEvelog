@@ -50,19 +50,29 @@ with col_form:
 
 
     uploaded = st.file_uploader(
-    "Importar planilha",
-    type=["xlsx", "xls", "csv"],
+    "Importar arquivos",
+    type=["xlsx", "xls", "csv", "txt"],
     accept_multiple_files=True
 )
 
-
-# --------------------------------------------------
-# PROCESSAMENTO DA PLANILHA
-# --------------------------------------------------
 # --------------------------------------------------
 # PROCESSAMENTO DA PLANILHA
 # --------------------------------------------------
 if uploaded:
+
+    # ==================================================
+    # FLUXO TXT (PEDIDOS / EVELOG)
+    # Se TODOS os arquivos forem .txt
+    # ==================================================
+    if all(file.name.lower().endswith(".txt") for file in uploaded):
+
+        import pedidos_txt
+        pedidos_txt.run(
+            arquivos=uploaded,
+            email_user=email_user,
+            senha=senha
+        )
+        st.stop()
 
     # ==================================================
     # DETECÇÃO DE PLANILHA DE COLETA
@@ -127,8 +137,6 @@ if uploaded:
         dfs.append(df)
 
     df = pd.concat(dfs, ignore_index=True)
-
-    st.dataframe(df)
 
     # -----------------------------
     # COLUNAS FIXAS
