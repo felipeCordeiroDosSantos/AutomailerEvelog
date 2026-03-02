@@ -75,6 +75,29 @@ if uploaded:
         st.stop()
 
     # ==================================================
+    # FLUXO COLETAS ARCOS
+    # Se A1 == "RE"
+    # ==================================================
+    first_file = uploaded[0]
+
+    if first_file.name.endswith(".csv"):
+        df_check = pd.read_csv(first_file, header=None, nrows=1)
+    else:
+        df_check = pd.read_excel(first_file, header=None, nrows=1)
+
+    primeira_celula = str(df_check.iloc[0, 0]).strip().upper()
+
+    if primeira_celula == "RE":
+
+        import coletasArcos
+        coletasArcos.run(
+            arquivo=first_file,
+            email_user=email_user,
+            senha=senha
+        )
+        st.stop()
+
+    # ==================================================
     # DETECÇÃO DE PLANILHA DE COLETA
     # (A2 == "ORDEM") → usa SOMENTE o primeiro arquivo
     # ==================================================
