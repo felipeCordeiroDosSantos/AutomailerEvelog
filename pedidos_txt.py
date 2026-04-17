@@ -124,8 +124,6 @@ def run(arquivos, email_user, senha):
         df["PRECO_UNIT_RS"], errors="coerce"
     )
 
-    st.write(df)
-
     # -----------------------------
     # CONFIGURAÇÃO DO EMAIL
     # -----------------------------
