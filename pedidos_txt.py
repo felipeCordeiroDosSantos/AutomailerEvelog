@@ -4,7 +4,6 @@ import re
 import smtplib
 from email.mime.text import MIMEText
 
-
 # --------------------------------------------------
 # BASE DE EMAILS DOS RESTAURANTES
 # --------------------------------------------------
@@ -24,9 +23,7 @@ def carregar_emails_restaurantes():
 
     return dict(zip(df["RESTAURANTE"], df["EMAILS"]))
 
-
 emails_restaurantes = carregar_emails_restaurantes()
-
 
 # --------------------------------------------------
 # PARSER DOS TXT
@@ -94,7 +91,6 @@ def parse_txt(arquivo):
         "ARQUIVO_ORIGEM"
     ])
 
-
 # --------------------------------------------------
 # FLUXO PRINCIPAL
 # --------------------------------------------------
@@ -127,6 +123,8 @@ def run(arquivos, email_user, senha):
     df["PRECO_UNIT_RS"] = pd.to_numeric(
         df["PRECO_UNIT_RS"], errors="coerce"
     )
+
+    st.write(df)
 
     # -----------------------------
     # CONFIGURAÇÃO DO EMAIL
@@ -200,7 +198,7 @@ def run(arquivos, email_user, senha):
                     msg["From"] = email_user
                     msg["To"] = ", ".join(emails_to)
                     msg["Cc"] = ", ".join(cc_list)
-                    msg["Subject"] = f'SOLICITAÇÃO DE NF NIG "{pedido["PEDIDO"]}"'
+                    msg["Subject"] = f'SOLICITAÇÃO DE NF {pedido["RESTAURANTE"]} {pedido["PEDIDO"]}'
 
                     smtp.send_message(
                         msg,
@@ -228,4 +226,3 @@ def run(arquivos, email_user, senha):
         if sem_email:
             st.warning("⚠️ Restaurantes sem e-mail cadastrado:")
             st.write(list(set(sem_email)))
-
