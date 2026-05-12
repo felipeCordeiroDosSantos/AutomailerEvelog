@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import smtplib
 from email.mime.text import MIMEText
+import time
 
 # --------------------------------------------------
 # CONFIG STREAMLIT
@@ -19,7 +20,7 @@ st.title("📮 Envio Automático de E-mails")
 # --------------------------------------------------
 @st.cache_data
 def carregar_emails_unidades():
-    df = pd.read_excel("emails_unidades.xlsx", header=0)
+    df = pd.read_excel("emails_unidades123.xlsx", header=0)
     df.columns = ["Unidade", "Emails"]
 
     df["Unidade"] = df["Unidade"].astype(str).str.strip().str.upper()
@@ -265,6 +266,7 @@ if uploaded:
 
         log_envio = []
         sem_email = []
+        falhas_envio = []
 
         total_grupos = len(grupos)
         emails_enviados = 0
@@ -345,33 +347,97 @@ if uploaded:
                         msg["Subject"] = f"{assunto} – Unidade {unidade}"
                         msg["Cc"] = ", ".join(cc_list)
 
-                        smtp.send_message(
-                            msg,
-                            to_addrs=emails_to + cc_list
-                        )
+                        enviado = False
+                        tentativas = 3
 
-                        emails_enviados += 1
+                        for tentativa in range(tentativas):
 
-                        percentual = int((emails_enviados / total_grupos) * 100)
-                        progress_bar.progress(percentual)
+                            try:
 
-                        contador_placeholder.markdown(
-                            f"""
-                            **📧 E-mails enviados:** {emails_enviados}  
-                            **🏢 Unidades acionadas:** {emails_enviados} / {total_grupos}
-                            """
-                        )
+                                smtp.send_message(
+                                    msg,
+                                    to_addrs=emails_to + cc_list
+                                )
 
-                        log_envio.append({
-                            "Unidade": unidade,
-                            "Status": status_selecionado,
-                            "Qtd registros": len(pedidos_unidade),
-                            "Para": ", ".join(emails_to),
-                            "CC": ", ".join(cc_list)
-                        })
+                                enviado = True
 
-                    progress_bar.progress(100)
-                    st.success("✅ Envio concluído com sucesso!")
+                                break
+
+                            except Exception as erro_envio:
+
+                                st.warning(
+                                    f"""
+                                    Tentativa {tentativa + 1}/{tentativas}
+                                    falhou para unidade {unidade}
+                                    """
+                                )
+
+                                st.write(str(erro_envio))
+
+                                # espera antes de tentar novamente
+                                time.sleep(5 * (tentativa + 1))
+
+                                # reconecta SMTP
+                                try:
+                                    smtp.quit()
+                                except:
+                                    pass
+
+                                smtp = smtplib.SMTP_SSL("email-ssl.com.br", 465)
+                                smtp.login(email_user, senha)
+
+                        # ------------------------------------------------
+                        # SE ENVIOU
+                        # ------------------------------------------------
+                        if enviado:
+
+                            # evita sobrecarregar SMTP
+                            time.sleep(2)
+
+                            emails_enviados += 1
+
+                            # reconecta a cada 20 envios
+                            if emails_enviados % 20 == 0:
+
+                                smtp.quit()
+
+                                smtp = smtplib.SMTP_SSL("email-ssl.com.br", 465)
+                                smtp.login(email_user, senha)
+
+                            percentual = int((emails_enviados / total_grupos) * 100)
+                            progress_bar.progress(percentual)
+
+                            contador_placeholder.markdown(
+                                f"""
+                                **📧 E-mails enviados:** {emails_enviados}  
+                                **🏢 Unidades acionadas:** {emails_enviados} / {total_grupos}
+                                """
+                            )
+
+                            log_envio.append({
+                                "Unidade": unidade,
+                                "Status": status_selecionado,
+                                "Qtd registros": len(pedidos_unidade),
+                                "Para": ", ".join(emails_to),
+                                "CC": ", ".join(cc_list)
+                            })
+
+                        # ------------------------------------------------
+                        # SE FALHOU TODAS
+                        # ------------------------------------------------
+                        else:
+
+                            st.error(
+                                f"""
+                                ❌ Falha definitiva no envio
+                                para unidade {unidade}
+                                """
+                            )
+
+                            falhas_envio.append({
+                                "Unidade": unidade,
+                                "Erro": str(erro_envio)
+                            })
 
 
                 st.success(f"✅ {len(log_envio)} e-mails enviados com sucesso!")
@@ -383,6 +449,13 @@ if uploaded:
                 if sem_email:
                     st.warning("⚠️ Unidades sem e-mail cadastrado:")
                     st.write(sem_email)
+                
+                if falhas_envio:
+
+                    st.error("❌ Unidades com falha no envio")
+                    st.dataframe(
+                        pd.DataFrame(falhas_envio)
+                    )
 
             except Exception as e:
                 st.error(f"Erro de conexão SMTP: {e}")
