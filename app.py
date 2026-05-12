@@ -20,7 +20,7 @@ st.title("📮 Envio Automático de E-mails")
 # --------------------------------------------------
 @st.cache_data
 def carregar_emails_unidades():
-    df = pd.read_excel("emails_unidades123.xlsx", header=0)
+    df = pd.read_excel("emails_unidades.xlsx", header=0)
     df.columns = ["Unidade", "Emails"]
 
     df["Unidade"] = df["Unidade"].astype(str).str.strip().str.upper()
